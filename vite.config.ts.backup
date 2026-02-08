@@ -1,0 +1,25 @@
+export default defineConfig({
+    plugins: [
+        react({
+            jsxRuntime: 'automatic',
+            // Adicione estas linhas:
+            babel: {
+                babelrc: false,
+                configFile: false,
+            },
+        }),
+        laravel({
+            input: ['resources/js/app.tsx'],
+            refresh: true,
+        }),
+    ],
+    // Adicione isto também:
+    define: {
+        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+    },
+    server: {
+        hmr: {
+            host: 'localhost',
+        },
+    },
+});
