@@ -1,38 +1,33 @@
-FROM ubuntu:22.04
+# Use imagem Alpine (mais leve e sem problemas de apt)
+FROM php:8.2-cli-alpine
 
-ENV DEBIAN_FRONTEND=noninteractive
+# 1. Instalar dependências no Alpine (apk em vez de apt)
+RUN apk add --no-cache \
+    curl \
+    git \
+    unzip \
+    nodejs \
+    npm \
+    libzip-dev \
+    libpng-dev \
+    oniguruma-dev \
+    postgresql-dev
 
-# 1. Instalar PHP e Composer via apt (mais estável)
-RUN apt-get update && \
-    apt-get install -y \
-        php8.2 \
-        php8.2-cli \
-        php8.2-mysql \
-        php8.2-mbstring \
-        php8.2-xml \
-        php8.2-zip \
-        php8.2-curl \
-        php8.2-gd \
-        composer \
-        curl \
-        git \
-        unzip
+# 2. Instalar extensões PHP
+RUN docker-php-ext-install pdo pdo_mysql mbstring zip gd
 
-# 2. Instalar Node.js
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
-    apt-get install -y nodejs
+# 3. Instalar Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 WORKDIR /var/www/html
 COPY . .
 
-# 3. Composer install com fallbacks
-RUN composer install --no-dev --optimize-autoloader || \
-    composer install --no-dev --optimize-autoloader --ignore-platform-reqs || \
-    composer install --ignore-platform-reqs
+# 4. Composer install
+RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 
-# 4. Node
-RUN npm install || npm install --legacy-peer-deps || true
-RUN npm run production || npm run build || true
+# 5. Node
+RUN npm install --legacy-peer-deps
+RUN npm run production || npm run build
 
 EXPOSE 8080
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
