@@ -1,33 +1,34 @@
-# Use imagem Alpine (mais leve e sem problemas de apt)
 FROM php:8.2-cli-alpine
 
-# 1. Instalar dependências no Alpine (apk em vez de apt)
 RUN apk add --no-cache \
     curl \
     git \
     unzip \
     nodejs \
-    npm \
-    libzip-dev \
-    libpng-dev \
-    oniguruma-dev \
-    postgresql-dev
+    npm
 
-# 2. Instalar extensões PHP
-RUN docker-php-ext-install pdo pdo_mysql mbstring zip gd
+RUN docker-php-ext-install pdo pdo_mysql mbstring
 
-# 3. Instalar Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+RUN curl -sS https://getcomposer.org/installer | php -- \
+    --install-dir=/usr/local/bin --filename=composer
 
 WORKDIR /var/www/html
 COPY . .
 
-# 4. Composer install
-RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
+# Apenas roda composer install SE composer.json existir
+RUN if [ -f composer.json ]; then \
+    composer install --no-dev --optimize-autoloader --ignore-platform-reqs; \
+    else \
+    echo "composer.json não encontrado, pulando composer install"; \
+    fi
 
-# 5. Node
-RUN npm install --legacy-peer-deps
-RUN npm run production || npm run build
+# Apenas roda npm install SE package.json existir
+RUN if [ -f package.json ]; then \
+    npm install --legacy-peer-deps; \
+    npm run build; \
+    else \
+    echo "package.json não encontrado, pulando npm"; \
+    fi
 
 EXPOSE 8080
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
